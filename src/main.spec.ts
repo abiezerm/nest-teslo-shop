@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { bootstrap } from './main';
 import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 jest.mock('@nestjs/common', () => ({
   Logger: jest.fn().mockReturnValue({
@@ -96,6 +97,24 @@ describe('Main.ts', () => {
           whitelist: true,
         }),
       }),
+    );
+  });
+
+  it('should call DocumentBuilder', async () => {
+    await bootstrap();
+
+    expect(DocumentBuilder).toHaveBeenCalled();
+    expect(DocumentBuilder).toHaveBeenCalledWith();
+  });
+
+  it('should create swagger document', async () => {
+    await bootstrap();
+
+    expect(SwaggerModule.createDocument).toHaveBeenCalled();
+    expect(SwaggerModule.setup).toHaveBeenCalledWith(
+      'api',
+      expect.anything(),
+      'document',
     );
   });
 });
