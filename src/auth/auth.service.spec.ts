@@ -9,6 +9,7 @@ import * as bcrypt from 'bcrypt';
 import {
   BadRequestException,
   InternalServerErrorException,
+  UnauthorizedException,
 } from '@nestjs/common';
 
 describe('AuthService', () => {
@@ -157,5 +158,56 @@ describe('AuthService', () => {
 
     expect(result.user.password).not.toBeDefined();
     expect(result.user.password).toBeUndefined();
+  });
+
+  it('should throw an UnAuthorized Exception if user doest not exist', async () => {
+    const dto = { email: 'test@google.com' } as LoginUserDto;
+
+    jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
+
+    await expect(authService.login(dto)).rejects.toThrow(UnauthorizedException);
+    await expect(authService.login(dto)).rejects.toThrow(
+      'Credentials are not valid (email)',
+    );
+  });
+
+  it('should throw an UnAuthorized Exception if user doest not exist', async () => {
+    const dto = { email: 'test@google.com' } as LoginUserDto;
+
+    jest.spyOn(userRepository, 'findOne').mockResolvedValue({
+      password: 'Xyz123',
+    } as User);
+
+    jest.spyOn(bcrypt, 'compareSync').mockReturnValue(false);
+
+    await expect(authService.login(dto)).rejects.toThrow(UnauthorizedException);
+    await expect(authService.login(dto)).rejects.toThrow(
+      'Credentials are not valid (password)',
+    );
+  });
+
+  it('should check auth status and return user with new token', async () => {
+    const user = {
+      id: '1',
+      email: 'test@google.com',
+      password: '123',
+      fullName: 'Test User',
+      isActive: true,
+      roles: ['user', 'admin'],
+    } as User;
+
+    const result = await authService.checkAuthStatus(user);
+
+    expect(result).toEqual({
+      user: {
+        id: '1',
+        email: 'test@google.com',
+        password: '123',
+        fullName: 'Test User',
+        isActive: true,
+        roles: ['user', 'admin'],
+      },
+      token: 'mock-jwt-token',
+    });
   });
 });
