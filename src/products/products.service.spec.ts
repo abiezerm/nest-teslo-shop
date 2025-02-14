@@ -5,7 +5,8 @@ import { Product, ProductImage } from './entities';
 import { DataSource, Repository } from 'typeorm';
 import { CreateProductDto } from './dto/create-product.dto';
 import { User } from '../auth/entities/user.entity';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { PaginationDto } from 'src/common/dtos/pagination.dto';
 
 describe('ProductService', () => {
   let service: ProductsService;
@@ -13,13 +14,29 @@ describe('ProductService', () => {
   let productImageRepository: Repository<ProductImage>;
 
   beforeEach(async () => {
+    const mockQueryBuilder = {
+      where: jest.fn(() => mockQueryBuilder),
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue({
+        id: 'UUID_VALID',
+        title: 'Product 1',
+        slug: 'product-1',
+        image: [
+          {
+            id: '1',
+            url: 'image1.jpg',
+          },
+        ],
+      }),
+    };
+
     const mockProductRepository = {
       create: jest.fn(),
       save: jest.fn(),
       find: jest.fn(),
       count: jest.fn(),
       findOneBy: jest.fn(),
-      createQueryBuilder: jest.fn(),
+      createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
       findOne: jest.fn(),
       preload: jest.fn(),
       remove: jest.fn(),
@@ -127,5 +144,71 @@ describe('ProductService', () => {
     await expect(service.create(dto, user)).rejects.toThrow(
       'Cannot create product because XYZ',
     );
+  });
+
+  it('should find all products', async () => {
+    const dto = {
+      limit: 10,
+      offset: 0,
+      gender: 'men',
+    } as PaginationDto;
+
+    const products = [
+      { id: '1', title: 'Product 1', images: [{ id: '1', url: 'image1.jpg' }] },
+      { id: '2', title: 'Product 2', images: [{ id: '2', url: 'image2.jpg' }] },
+    ] as unknown as Product[];
+
+    jest.spyOn(productRepository, 'find').mockResolvedValue(products);
+    jest.spyOn(productRepository, 'count').mockResolvedValue(2);
+
+    const result = await service.findAll(dto);
+
+    expect(result).toEqual({
+      count: 2,
+      pages: 1,
+      products: products.map((product) => ({
+        ...product,
+        images: product.images.map((img) => img.url),
+      })),
+    });
+  });
+
+  it('should find a product by valid ID', async () => {
+    const productId = '3686bdc9-1acd-4bbc-9f23-34454294a8fa';
+    const product = {
+      id: productId,
+      title: 'Product 1',
+    } as Product;
+
+    jest.spyOn(productRepository, 'findOneBy').mockResolvedValue(product);
+
+    const result = await service.findOne(productId);
+
+    expect(result).toEqual({
+      id: '3686bdc9-1acd-4bbc-9f23-34454294a8fa',
+      title: 'Product 1',
+    });
+  });
+
+  it('should throw an error if id was not found', async () => {
+    const productId = '3686bdc9-1acd-4bbc-9f23-34454294a8fa';
+
+    jest.spyOn(productRepository, 'findOneBy').mockResolvedValue(null);
+
+    await expect(service.findOne(productId)).rejects.toThrow(NotFoundException);
+    await expect(service.findOne(productId)).rejects.toThrow(
+      `Product with ${productId} not found`,
+    );
+  });
+
+  it('should return product by term or slug', async () => {
+    const result = await service.findOne('Product 1');
+
+    expect(result).toEqual({
+      id: 'UUID_VALID',
+      title: 'Product 1',
+      slug: 'product-1',
+      image: [{ id: '1', url: 'image1.jpg' }],
+    });
   });
 });
