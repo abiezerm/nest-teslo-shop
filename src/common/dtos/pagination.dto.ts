@@ -25,7 +25,39 @@ export class PaginationDto {
   @ApiProperty({
     default: '',
     description: 'Filter results by gender',
+    enum: ['men', 'women', 'unisex', 'kid', ''],
+    example: 'men',
   })
   @IsOptional()
-  gender: 'men' | 'women' | 'unisex' | 'kid';
+  gender?: 'men' | 'women' | 'unisex' | 'kid' | '';
+
+  @ApiProperty({
+    required: false,
+    description: 'Precio mínimo para filtrar resultados',
+    example: 0,
+  })
+  @IsOptional()
+  @Min(0)
+  @Type(() => Number)
+  minPrice?: number;
+
+  @ApiProperty({
+    required: false,
+    description: 'Precio máximo para filtrar resultados',
+    example: 50,
+  })
+  @IsOptional()
+  @Min(0)
+  @Type(() => Number)
+  maxPrice?: number;
+
+  @ApiProperty({
+    required: false,
+    description: 'Filtrar resultados por tallas. Ejemplo: "XS,S,M"',
+    isArray: false,
+    example: 'XS,S,M',
+  })
+  @IsOptional()
+  @Type(() => String)
+  sizes?: string;
 }

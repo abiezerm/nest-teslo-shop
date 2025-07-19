@@ -6,7 +6,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import {
+  ArrayContains,
+  Between,
+  DataSource,
+  In,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -51,7 +59,25 @@ export class ProductsService {
   }
 
   async findAll(paginationDto: PaginationDto) {
-    const { limit = 10, offset = 0, gender = '' } = paginationDto;
+    const {
+      limit = 10,
+      offset = 0,
+      gender = '',
+      minPrice,
+      maxPrice,
+      sizes,
+    } = paginationDto;
+
+    const sizesArray = sizes ? sizes.toUpperCase().split(',') : undefined;
+
+    const priceWhere =
+      minPrice !== undefined && maxPrice !== undefined
+        ? Between(minPrice, maxPrice)
+        : minPrice !== undefined
+        ? MoreThanOrEqual(minPrice)
+        : maxPrice !== undefined
+        ? LessThanOrEqual(maxPrice)
+        : undefined;
 
     const products = await this.productRepository.find({
       take: limit,
@@ -62,11 +88,19 @@ export class ProductsService {
       order: {
         id: 'ASC',
       },
-      where: gender ? [{ gender }, { gender: 'unisex' }] : {},
+      where: {
+        gender: gender ? gender : undefined,
+        price: priceWhere,
+        sizes: sizesArray ? ArrayContains(sizesArray) : undefined,
+      },
     });
 
     const totalProducts = await this.productRepository.count({
-      where: gender ? [{ gender }, { gender: 'unisex' }] : {},
+      where: {
+        gender: gender ? gender : undefined,
+        price: priceWhere,
+        sizes: sizesArray ? ArrayContains(sizesArray) : undefined,
+      },
     });
 
     return {
