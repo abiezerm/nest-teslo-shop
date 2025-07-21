@@ -10,6 +10,7 @@ import {
   ArrayContains,
   Between,
   DataSource,
+  ILike,
   In,
   LessThanOrEqual,
   MoreThanOrEqual,
@@ -66,6 +67,7 @@ export class ProductsService {
       minPrice,
       maxPrice,
       sizes,
+      q: query,
     } = paginationDto;
 
     const sizesArray = sizes ? sizes.toUpperCase().split(',') : undefined;
@@ -92,6 +94,7 @@ export class ProductsService {
         gender: gender ? gender : undefined,
         price: priceWhere,
         sizes: sizesArray ? ArrayContains(sizesArray) : undefined,
+        title: query ? ILike(`%${query}%`) : undefined,
       },
     });
 
@@ -100,6 +103,7 @@ export class ProductsService {
         gender: gender ? gender : undefined,
         price: priceWhere,
         sizes: sizesArray ? ArrayContains(sizesArray) : undefined,
+        title: query ? ILike(`%${query}%`) : undefined,
       },
     });
 

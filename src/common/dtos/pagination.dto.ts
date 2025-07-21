@@ -60,4 +60,13 @@ export class PaginationDto {
   @IsOptional()
   @Type(() => String)
   sizes?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Query para filtrar resultados',
+    example: 'query',
+  })
+  @IsOptional()
+  @Type(() => String)
+  q?: string;
 }
